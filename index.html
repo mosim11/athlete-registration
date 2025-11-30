@@ -1,1 +1,182 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Athlete Registration — Export to Excel</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Roboto, Arial; padding: 18px; background:#f7fafc; }
+    .wrap{ max-width:900px; margin:0 auto; background:white; padding:18px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.06) }
+    .row{ display:flex; gap:10px; margin-bottom:10px; }
+    .col{ flex:1; }
+    input, select { width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:6px; }
+    label{ font-size:13px; margin-bottom:6px; display:block; color:#374151; }
+    button{ padding:10px 14px; border-radius:6px; border:none; cursor:pointer; }
+    .btn-primary{ background:#0ea5a4; color:white; }
+    .list{ margin-top:16px; max-height:280px; overflow:auto; border-top:1px dashed #e6eef0; padding-top:12px; }
+    .item{ padding:8px; border:1px solid #eef2f7; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+    .small{ font-size:13px; color:#6b7280; }
+  </style>
+  <!-- SheetJS (xlsx) -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Athlete Registration (Single Page)</h2>
+
+    <div id="form">
+      <div class="row">
+        <div class="col">
+          <label>Full name *</label>
+          <input id="name" placeholder="e.g. R. Kumar" />
+        </div>
+        <div class="col">
+          <label>Roll / Reg. No *</label>
+          <input id="roll" placeholder="e.g. 21HTC045" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Department / Class</label>
+          <input id="dept" />
+        </div>
+        <div class="col">
+          <label>Mobile Number *</label>
+          <input id="contact" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Age Category</label>
+          <select id="ageCat"><option>Open</option><option>Under 17</option><option>Under 19</option><option>Under 21</option></select>
+        </div>
+        <div class="col">
+          <label>Events (comma separated) *</label>
+          <input id="events" placeholder="100m, Long Jump" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Blood Group</label>
+          <input id="blood" />
+        </div>
+        <div class="col">
+          <label>Emergency Contact</label>
+          <input id="emergency" placeholder="Name (number)" />
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button id="addBtn" class="btn-primary">Add Registration</button>
+        <button id="clearBtn">Reset</button>
+        <div style="flex:1"></div>
+        <button id="downloadXlsx">Export .xlsx</button>
+        <button id="downloadCsv" style="margin-left:6px">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="list" id="list"></div>
+    <p class="small">Tip: Required fields are marked *. The file will download to your browser's Downloads folder.</p>
+  </div>
+
+<script>
+  // Minimal client-side storage
+  const entries = JSON.parse(localStorage.getItem('athlete_regs') || '[]');
+
+  const elements = {
+    name: document.getElementById('name'),
+    roll: document.getElementById('roll'),
+    dept: document.getElementById('dept'),
+    contact: document.getElementById('contact'),
+    ageCat: document.getElementById('ageCat'),
+    events: document.getElementById('events'),
+    blood: document.getElementById('blood'),
+    emergency: document.getElementById('emergency'),
+    addBtn: document.getElementById('addBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    list: document.getElementById('list'),
+    downloadXlsx: document.getElementById('downloadXlsx'),
+    downloadCsv: document.getElementById('downloadCsv')
+  };
+
+  function renderList(){
+    elements.list.innerHTML = '';
+    if(entries.length === 0){ elements.list.innerHTML = '<div class="small">No registrations yet</div>'; return; }
+    entries.forEach((e, i) => {
+      const div = document.createElement('div'); div.className = 'item';
+      div.innerHTML = `<div><strong>${e.Name}</strong><div class="small">${e.Roll} · ${e.Dept || ''} · ${e.Events}</div></div>
+                       <div>
+                         <button onclick="deleteEntry(${i})" style="margin-right:6px">Delete</button>
+                       </div>`;
+      elements.list.appendChild(div);
+    });
+  }
+
+  function saveLocal(){ localStorage.setItem('athlete_regs', JSON.stringify(entries)); renderList(); }
+
+  function addRegistration(){
+    const name = elements.name.value.trim();
+    const roll = elements.roll.value.trim();
+    const contact = elements.contact.value.trim();
+    const evs = elements.events.value.trim();
+    if(!name || !roll || !contact || !evs){ alert('Please fill required fields: Name, Roll, Contact, Events'); return; }
+    entries.unshift({
+      Name: name, Roll: roll, Dept: elements.dept.value.trim(), Contact: contact,
+      AgeCategory: elements.ageCat.value, Events: evs, BloodGroup: elements.blood.value.trim(),
+      Emergency: elements.emergency.value.trim(), Timestamp: new Date().toISOString()
+    });
+    saveLocal();
+    // reset small fields
+    elements.name.value=''; elements.roll.value=''; elements.contact.value=''; elements.events.value=''; elements.dept.value=''; elements.blood.value=''; elements.emergency.value='';
+  }
+
+  function deleteEntry(i){
+    if(!confirm('Delete this entry?')) return;
+    entries.splice(i,1); saveLocal();
+  }
+
+  elements.addBtn.addEventListener('click', addRegistration);
+  elements.clearBtn.addEventListener('click', ()=>{ elements.name.value=''; elements.roll.value=''; elements.contact.value=''; elements.events.value=''; elements.dept.value=''; elements.blood.value=''; elements.emergency.value=''; });
+
+  // Export XLSX using SheetJS
+  function exportXLSX(){
+    if(entries.length === 0){ alert('No registrations to export'); return; }
+    // map to desired columns/order
+    const data = entries.map(e => ({
+      Name: e.Name, Roll: e.Roll, Department: e.Dept, AgeCategory: e.AgeCategory,
+      Contact: e.Contact, Events: e.Events, BloodGroup: e.BloodGroup, Emergency: e.Emergency, Timestamp: e.Timestamp
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{wch:20},{wch:12},{wch:18},{wch:12},{wch:14},{wch:30},{wch:10},{wch:22},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Registrations');
+    const filename = `athlete_registrations_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  // Export CSV fallback
+  function exportCSV(){
+    if(entries.length === 0){ alert('No registrations to export'); return; }
+    const headers = ['Name','Roll','Department','AgeCategory','Contact','Events','BloodGroup','Emergency','Timestamp'];
+    const rows = entries.map(e => [e.Name,e.Roll,e.Dept,e.AgeCategory,e.Contact,e.Events,e.BloodGroup,e.Emergency,e.Timestamp]);
+    const csv = [headers, ...rows].map(r => r.map(cell => `"${(cell||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download = `athlete_registrations_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  elements.downloadXlsx.addEventListener('click', exportXLSX);
+  elements.downloadCsv.addEventListener('click', exportCSV);
+
+  // Expose deleteEntry for inline button actions
+  window.deleteEntry = deleteEntry;
+
+  // initial render
+  renderList();
+</script>
+</body>
+</html>
 
