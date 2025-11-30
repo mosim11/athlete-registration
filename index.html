@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Athlete Registration — Export to Excel</title>
+  <title>Athlete Registration — Export to Excel (with Login)</title>
   <style>
     body { font-family: system-ui, -apple-system, Roboto, Arial; padding: 18px; background:#f7fafc; }
-    .wrap{ max-width:900px; margin:0 auto; background:white; padding:18px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.06) }
+    .wrap{ max-width:920px; margin:0 auto; background:white; padding:18px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.06) }
     .row{ display:flex; gap:10px; margin-bottom:10px; }
     .col{ flex:1; }
     input, select { width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:6px; }
@@ -16,75 +16,138 @@
     .list{ margin-top:16px; max-height:280px; overflow:auto; border-top:1px dashed #e6eef0; padding-top:12px; }
     .item{ padding:8px; border:1px solid #eef2f7; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
     .small{ font-size:13px; color:#6b7280; }
+    .login-box { display:flex; gap:8px; align-items:center; margin-bottom:12px; }
+    .role-badge { padding:4px 8px; background:#eef2ff; border-radius:6px; font-size:13px; color:#1e40af; }
+    .topbar { display:flex; align-items:center; gap:12px; margin-bottom:12px; justify-content:space-between; }
+    .hidden { display:none !important; }
   </style>
+
   <!-- SheetJS (xlsx) -->
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="wrap">
-    <h2>Athlete Registration (Single Page)</h2>
+    <div class="topbar">
+      <h2>Athlete Registration</h2>
+      <div id="userArea">
+        <!-- Login UI appears here -->
+        <div id="loginUI" class="login-box">
+          <input id="loginUser" placeholder="Username" />
+          <input id="loginPass" placeholder="Password" type="password" />
+          <button id="loginBtn" class="btn-primary">Login</button>
+        </div>
 
-    <div id="form">
-      <div class="row">
-        <div class="col">
-          <label>Full name *</label>
-          <input id="name" placeholder="e.g. R. Kumar" />
+        <div id="afterLogin" class="hidden" style="align-items:center; gap:8px;">
+          <span id="who" class="small"></span>
+          <span id="roleBadge" class="role-badge"></span>
+          <button id="logoutBtn">Logout</button>
         </div>
-        <div class="col">
-          <label>Roll / Reg. No *</label>
-          <input id="roll" placeholder="e.g. 21HTC045" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label>Department / Class</label>
-          <input id="dept" />
-        </div>
-        <div class="col">
-          <label>Mobile Number *</label>
-          <input id="contact" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label>Age Category</label>
-          <select id="ageCat"><option>Open</option><option>Under 17</option><option>Under 19</option><option>Under 21</option></select>
-        </div>
-        <div class="col">
-          <label>Events (comma separated) *</label>
-          <input id="events" placeholder="100m, Long Jump" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label>Blood Group</label>
-          <input id="blood" />
-        </div>
-        <div class="col">
-          <label>Emergency Contact</label>
-          <input id="emergency" placeholder="Name (number)" />
-        </div>
-      </div>
-
-      <div style="display:flex; gap:10px; margin-top:10px;">
-        <button id="addBtn" class="btn-primary">Add Registration</button>
-        <button id="clearBtn">Reset</button>
-        <div style="flex:1"></div>
-        <button id="downloadXlsx">Export .xlsx</button>
-        <button id="downloadCsv" style="margin-left:6px">Export CSV</button>
       </div>
     </div>
 
-    <div class="list" id="list"></div>
-    <p class="small">Tip: Required fields are marked *. The file will download to your browser's Downloads folder.</p>
+    <div id="notice" class="small">Please login to register. Use sample credentials: school1/pass123, college1/cpass, open1/open123</div>
+
+    <!-- Registration form (hidden until login) -->
+    <div id="formArea" class="hidden" style="margin-top:12px;">
+      <div id="form">
+        <div class="row">
+          <div class="col">
+            <label>Full name *</label>
+            <input id="name" placeholder="e.g. R. Kumar" />
+          </div>
+          <div class="col">
+            <label>Roll / Reg. No *</label>
+            <input id="roll" placeholder="e.g. 21HTC045" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>Department / Class</label>
+            <input id="dept" />
+          </div>
+          <div class="col">
+            <label>Mobile Number *</label>
+            <input id="contact" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>Age Category</label>
+            <select id="ageCat"><option>Open</option><option>Under 17</option><option>Under 19</option><option>Under 21</option></select>
+          </div>
+          <div class="col">
+            <label>Events (comma separated) *</label>
+            <input id="events" placeholder="100m, Long Jump" />
+            <div id="allowedHint" class="small" style="margin-top:6px;color:#374151"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>Blood Group</label>
+            <input id="blood" />
+          </div>
+          <div class="col">
+            <label>Emergency Contact</label>
+            <input id="emergency" placeholder="Name (number)" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button id="addBtn" class="btn-primary">Add Registration</button>
+          <button id="clearBtn">Reset</button>
+          <div style="flex:1"></div>
+          <button id="downloadXlsx">Export .xlsx</button>
+          <button id="downloadCsv" style="margin-left:6px">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="list" id="list"></div>
+      <p class="small">Tip: Required fields are marked *. The file will download to your browser's Downloads folder.</p>
+    </div>
+
   </div>
 
 <script>
-  // Minimal client-side storage
-  const entries = JSON.parse(localStorage.getItem('athlete_regs') || '[]');
+  /***********************
+   * QUICK CLIENT-SIDE LOGIN
+   * Not secure — credentials are visible in source.
+   * For production use Firebase/Auth or other secure auth.
+   ***********************/
+
+  // === EDIT THIS: credentials and roles ===
+  // format: username: { password, display, role }
+  const users = {
+    'school1':  { password:'pass123', display:'School Admin', role:'school' },
+    'college1': { password:'cpass',   display:'College Admin', role:'college' },
+    'open1':    { password:'open123', display:'Open User',     role:'open' }
+  };
+
+  // allowed events per role (edit as needed)
+  const allowedEventsByRole = {
+    school:  ['100m','200m','Long Jump'],
+    college: ['100m','200m','400m','Javelin','Relay','Long Jump','High Jump'],
+    open:    ['100m','200m','400m','800m','1500m','Shot Put','Discus','Javelin','Long Jump','High Jump','Relay']
+  };
+
+  // === DOM elements ===
+  const loginUI = document.getElementById('loginUI');
+  const afterLogin = document.getElementById('afterLogin');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginUser = document.getElementById('loginUser');
+  const loginPass = document.getElementById('loginPass');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const who = document.getElementById('who');
+  const roleBadge = document.getElementById('roleBadge');
+
+  const formArea = document.getElementById('formArea');
+  const allowedHint = document.getElementById('allowedHint');
+
+  // registration elements
+  const entriesKey = 'athlete_regs'; // same localStorage key (shared)
+  let entries = JSON.parse(localStorage.getItem(entriesKey) || '[]');
 
   const elements = {
     name: document.getElementById('name'),
@@ -102,12 +165,77 @@
     downloadCsv: document.getElementById('downloadCsv')
   };
 
+  // active user/role stored in session (clears on tab close)
+  function setLoggedIn(username, display, role) {
+    sessionStorage.setItem('auth', JSON.stringify({ username, display, role }));
+    showAfterLogin();
+  }
+  function clearAuth() {
+    sessionStorage.removeItem('auth');
+    showLoggedOut();
+  }
+  function getAuth() {
+    try { return JSON.parse(sessionStorage.getItem('auth')); } catch(e){ return null; }
+  }
+
+  // show/hide UI depending on auth
+  function showAfterLogin() {
+    const auth = getAuth();
+    if(!auth) return showLoggedOut();
+    loginUI.classList.add('hidden');
+    afterLogin.classList.remove('hidden');
+    formArea.classList.remove('hidden');
+    who.textContent = auth.display;
+    roleBadge.textContent = auth.role;
+    // show allowed events hint
+    const allowed = allowedEventsByRole[auth.role] || [];
+    allowedHint.textContent = 'Allowed events for your role: ' + allowed.join(', ');
+    renderList(); // show registrations
+  }
+  function showLoggedOut() {
+    loginUI.classList.remove('hidden');
+    afterLogin.classList.add('hidden');
+    formArea.classList.add('hidden');
+    who.textContent = '';
+    roleBadge.textContent = '';
+    allowedHint.textContent = '';
+    renderList(); // still show list (optional) — but form hidden
+  }
+
+  // login handler
+  loginBtn.addEventListener('click', () => {
+    const u = loginUser.value.trim();
+    const p = loginPass.value;
+    const user = users[u];
+    if(!user || user.password !== p) { alert('Invalid username or password'); return; }
+    setLoggedIn(u, user.display, user.role);
+    // keep fields clear
+    loginUser.value=''; loginPass.value='';
+  });
+
+  // logout
+  logoutBtn.addEventListener('click', () => { if(!confirm('Logout?')) return; clearAuth(); });
+
+  // Allow pressing Enter to login
+  loginPass.addEventListener('keydown', (e)=> { if(e.key==='Enter') loginBtn.click(); });
+
+  // on load: if session present, show logged in
+  if(getAuth()) showAfterLogin();
+  else showLoggedOut();
+
+  /* ========= registration logic (same as before) ========== */
+
   function renderList(){
     elements.list.innerHTML = '';
     if(entries.length === 0){ elements.list.innerHTML = '<div class="small">No registrations yet</div>'; return; }
+    // show only entries for this role? We'll show all but mark role. (You can change to filter)
+    const auth = getAuth();
+    const roleFilter = auth ? auth.role : null;
     entries.forEach((e, i) => {
+      // optional: show only entries added by this role — if you want that, skip others
+      // if(roleFilter && e.Role !== roleFilter) return;
       const div = document.createElement('div'); div.className = 'item';
-      div.innerHTML = `<div><strong>${e.Name}</strong><div class="small">${e.Roll} · ${e.Dept || ''} · ${e.Events}</div></div>
+      div.innerHTML = `<div><strong>${e.Name}</strong><div class="small">${e.Roll} · ${e.Dept || ''} · ${e.Events} · <span style="font-size:11px;color:#6b7280">role:${e.Role||'unknown'}</span></div></div>
                        <div>
                          <button onclick="deleteEntry(${i})" style="margin-right:6px">Delete</button>
                        </div>`;
@@ -115,18 +243,40 @@
     });
   }
 
-  function saveLocal(){ localStorage.setItem('athlete_regs', JSON.stringify(entries)); renderList(); }
+  function saveLocal(){ localStorage.setItem(entriesKey, JSON.stringify(entries)); renderList(); }
 
+  // Add registration: validate that user is logged in and events allowed
   function addRegistration(){
+    const auth = getAuth();
+    if(!auth) { alert('Please login first'); return; }
     const name = elements.name.value.trim();
     const roll = elements.roll.value.trim();
     const contact = elements.contact.value.trim();
-    const evs = elements.events.value.trim();
-    if(!name || !roll || !contact || !evs){ alert('Please fill required fields: Name, Roll, Contact, Events'); return; }
+    const evsRaw = elements.events.value.trim();
+    if(!name || !roll || !contact || !evsRaw){ alert('Please fill required fields: Name, Roll, Contact, Events'); return; }
+
+    const selected = evsRaw.split(',').map(s=> s.trim()).filter(Boolean);
+    const allowed = allowedEventsByRole[auth.role] || [];
+    // check each selected event is allowed
+    for(const s of selected) {
+      if(!allowed.includes(s)) {
+        alert(`Event not allowed for your role (${auth.role}): ${s}`);
+        return;
+      }
+    }
+
     entries.unshift({
-      Name: name, Roll: roll, Dept: elements.dept.value.trim(), Contact: contact,
-      AgeCategory: elements.ageCat.value, Events: evs, BloodGroup: elements.blood.value.trim(),
-      Emergency: elements.emergency.value.trim(), Timestamp: new Date().toISOString()
+      Name: name,
+      Roll: roll,
+      Dept: elements.dept.value.trim(),
+      Contact: contact,
+      AgeCategory: elements.ageCat.value,
+      Events: selected.join(', '),
+      BloodGroup: elements.blood.value.trim(),
+      Emergency: elements.emergency.value.trim(),
+      Timestamp: new Date().toISOString(),
+      Role: auth.role,
+      AddedBy: auth.username
     });
     saveLocal();
     // reset small fields
@@ -147,10 +297,10 @@
     // map to desired columns/order
     const data = entries.map(e => ({
       Name: e.Name, Roll: e.Roll, Department: e.Dept, AgeCategory: e.AgeCategory,
-      Contact: e.Contact, Events: e.Events, BloodGroup: e.BloodGroup, Emergency: e.Emergency, Timestamp: e.Timestamp
+      Contact: e.Contact, Events: e.Events, BloodGroup: e.BloodGroup, Emergency: e.Emergency, Timestamp: e.Timestamp, Role: e.Role, AddedBy: e.AddedBy
     }));
     const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = [{wch:20},{wch:12},{wch:18},{wch:12},{wch:14},{wch:30},{wch:10},{wch:22},{wch:20}];
+    ws['!cols'] = [{wch:20},{wch:12},{wch:18},{wch:12},{wch:14},{wch:30},{wch:10},{wch:22},{wch:20},{wch:12},{wch:12}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Registrations');
     const filename = `athlete_registrations_${new Date().toISOString().slice(0,10)}.xlsx`;
@@ -160,8 +310,8 @@
   // Export CSV fallback
   function exportCSV(){
     if(entries.length === 0){ alert('No registrations to export'); return; }
-    const headers = ['Name','Roll','Department','AgeCategory','Contact','Events','BloodGroup','Emergency','Timestamp'];
-    const rows = entries.map(e => [e.Name,e.Roll,e.Dept,e.AgeCategory,e.Contact,e.Events,e.BloodGroup,e.Emergency,e.Timestamp]);
+    const headers = ['Name','Roll','Department','AgeCategory','Contact','Events','BloodGroup','Emergency','Timestamp','Role','AddedBy'];
+    const rows = entries.map(e => [e.Name,e.Roll,e.Dept,e.AgeCategory,e.Contact,e.Events,e.BloodGroup,e.Emergency,e.Timestamp,e.Role,e.AddedBy]);
     const csv = [headers, ...rows].map(r => r.map(cell => `"${(cell||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href=url; a.download = `athlete_registrations_${new Date().toISOString().slice(0,10)}.csv`; a.click();
@@ -171,7 +321,7 @@
   elements.downloadXlsx.addEventListener('click', exportXLSX);
   elements.downloadCsv.addEventListener('click', exportCSV);
 
-  // Expose deleteEntry for inline button actions
+  // expose delete function (used by inline button)
   window.deleteEntry = deleteEntry;
 
   // initial render
@@ -179,4 +329,3 @@
 </script>
 </body>
 </html>
-
